@@ -78,7 +78,6 @@
     cursor: pointer;
     transition: background .2s;
   }
-  .icon-btn:hover { background: var(--soft); }
   .icon-btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
   .icon-btn svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -117,7 +116,6 @@
     padding: 10px 12px; border-radius: 10px; cursor: pointer;
   }
   .menu button svg { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .menu button:hover { background: var(--soft); }
   @keyframes pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
   /* Search */
@@ -148,7 +146,6 @@
     background: none; border: none; border-radius: 50%;
     color: var(--fg); cursor: pointer;
   }
-  .clear:hover { background: var(--soft); }
   .clear svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
   .search.has-text .clear { display: grid; }
 
@@ -159,9 +156,7 @@
     border: var(--bw) solid var(--border);
     border-radius: 18px;
     cursor: pointer;
-    transition: transform .15s, box-shadow .2s;
   }
-  .ai-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
   .ai-btn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
   /* Shortcuts card */
@@ -192,7 +187,6 @@
     overflow: hidden;
     transition: transform .15s, box-shadow .2s;
   }
-  a.item:hover .circle { transform: translateY(-3px); box-shadow: var(--shadow); }
   .circle img { width: 55%; height: 55%; object-fit: contain; }
   .circle .letter { font-weight: 600; font-size: 1.4rem; text-transform: uppercase; }
   .label {
@@ -217,7 +211,6 @@
 
   button.add { background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding: 0; }
   button.add .circle svg { width: 45%; height: 45%; stroke: var(--fg); stroke-width: 2; stroke-linecap: round; fill: none; }
-  button.add:hover .circle { transform: rotate(90deg); }
 
   /* Popup */
   .overlay {
@@ -253,7 +246,6 @@
     background: transparent; color: var(--fg);
   }
   .btn.primary { background: var(--fg); color: var(--bg); border-color: transparent; }
-  .btn:hover { opacity: .85; }
 
   /* Toast */
   #toast {
@@ -265,6 +257,15 @@
     transition: opacity .25s, transform .25s; z-index: 60;
   }
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* Hover effects apply only while a mouse is actually being used (the script sets
+     the "mouse" class), so finger taps on a phone never leave anything highlighted. */
+  :root.mouse .icon-btn:hover,
+  :root.mouse .menu button:hover,
+  :root.mouse .clear:hover { background: var(--soft); }
+  :root.mouse a.item:hover .circle { transform: translateY(-3px); box-shadow: var(--shadow); }
+  :root.mouse button.add:hover .circle { transform: rotate(90deg); }
+  :root.mouse .btn:hover { opacity: .85; }
 
   @media (max-width: 420px) {
     :root { --space: 16px; }
@@ -356,6 +357,14 @@
   const root = document.documentElement;
   const KEY_SHORTCUTS = 'startpage.shortcuts';
   const KEY_THEME = 'startpage.theme';
+
+  /* ---------- Mouse detection (enables hover effects only for a real mouse) ---------- */
+  window.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'mouse') root.classList.add('mouse');
+  }, { passive: true });
+  window.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse') root.classList.remove('mouse');
+  }, { passive: true });
 
   /* ---------- Greeting ---------- */
   function updateGreeting() {
@@ -523,7 +532,7 @@
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'startpage-shortcuts.json';
+    a.download = 'myhomepage shortcuts.json';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     toast('Exported ' + shortcuts.length + ' shortcuts');
