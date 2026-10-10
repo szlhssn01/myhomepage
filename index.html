@@ -3,27 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MyHomepage</title>
+<title>Start</title>
+<script>
+  // Apply the saved (or system) theme before first paint to avoid a light flash in dark mode.
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('startpage.theme'); } catch (e) {}
+    if (t !== 'light' && t !== 'dark') {
+      t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 <style>
   :root {
+    color-scheme: light;
     --space: 24px;               /* one spacing value used for every padding and gap */
-    --radius: 22px;
-    --bw: 2px;                   /* border thickness used by every outlined element */
-    --bg: #fafafa;
-    --fg: #111;
-    --muted: #6b6b6b;
-    --surface: #fff;
-    --border: #1a1a1a;
+    --bw: 1.5px;                 /* border thickness used by every outlined element */
+    --bg: #f2f3f5;
+    --fg: #111;                  /* icons and text stay solid */
+    --muted: #6b6f76;
+    --surface: #ffffff;          /* pills, card, menu, popup */
+    --surface-2: #f4f5f7;        /* circles and inputs */
+    --border: #d3d6dc;           /* soft grey outline */
     --soft: rgba(0,0,0,.06);
     --shadow: 0 2px 10px rgba(0,0,0,.06);
   }
   :root[data-theme="dark"] {
-    --bw: 1.7px;                 /* light-on-dark lines look heavier, so trim slightly to match */
-    --bg: #121212;
-    --fg: #f1f1f1;
-    --muted: #a0a0a0;
-    --surface: #1d1d1d;
-    --border: #e8e8e8;
+    color-scheme: dark;
+    --bg: #111111;
+    --fg: #f1f1f1;               /* icons and text stay solid */
+    --muted: #a0a3a8;
+    --surface: #1e1e1e;          /* pills, card, menu, popup */
+    --surface-2: #272727;        /* circles and inputs */
+    --border: #3d3d3d;           /* soft grey outline */
     --soft: rgba(255,255,255,.08);
     --shadow: 0 2px 10px rgba(0,0,0,.5);
   }
@@ -166,7 +179,6 @@
     align-items: start;
   }
   .item {
-    position: relative;
     width: 100%;
     display: flex; flex-direction: column; align-items: center; gap: 8px;
     text-decoration: none; color: var(--fg);
@@ -176,7 +188,7 @@
     border: var(--bw) solid var(--border);
     border-radius: 50%;
     display: grid; place-items: center;
-    background: var(--surface);
+    background: var(--surface-2);
     overflow: hidden;
     transition: transform .15s, box-shadow .2s;
   }
@@ -203,7 +215,6 @@
   .card-bar { display: none; justify-content: flex-end; margin-bottom: var(--space); }
   .editing .card-bar { display: flex; }
 
-  button.add .circle { cursor: pointer; }
   button.add { background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding: 0; }
   button.add .circle svg { width: 45%; height: 45%; stroke: var(--fg); stroke-width: 2; stroke-linecap: round; fill: none; }
   button.add:hover .circle { transform: rotate(90deg); }
@@ -230,11 +241,10 @@
   .field label { font-size: .85rem; color: var(--muted); }
   .field input {
     height: 44px; padding: 0 14px;
-    background: var(--bg); color: var(--fg);
+    background: var(--surface-2); color: var(--fg);
     border: var(--bw) solid var(--border); border-radius: 14px;
     font: inherit; outline: none;
   }
-  .field input:focus { box-shadow: 0 0 0 3px var(--soft); }
   .buttons { display: flex; justify-content: flex-end; gap: 12px; }
   .btn {
     height: 40px; padding: 0 20px;
@@ -242,7 +252,7 @@
     border: var(--bw) solid var(--border);
     background: transparent; color: var(--fg);
   }
-  .btn.primary { background: var(--fg); color: var(--bg); }
+  .btn.primary { background: var(--fg); color: var(--bg); border-color: transparent; }
   .btn:hover { opacity: .85; }
 
   /* Toast */
@@ -361,25 +371,19 @@
   setInterval(updateGreeting, 60 * 1000);
 
   /* ---------- Theme ---------- */
-  function getSavedTheme() {
-    try { return localStorage.getItem(KEY_THEME); } catch { return null; }
-  }
+  // The saved theme is applied by the small script in <head> so there's no light flash on load.
   function setTheme(t) {
     root.setAttribute('data-theme', t);
     try { localStorage.setItem(KEY_THEME, t); } catch {}
   }
-  const initial = getSavedTheme() ||
-    (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  root.setAttribute('data-theme', initial);
   $('theme-toggle').addEventListener('click', () => {
     setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
 
   /* ---------- Search / AI mode ---------- */
   $('ai-btn').addEventListener('click', () => {
-    const q = $('q').value.trim();
-    const url = 'https://www.google.com/search?udm=50' + (q ? '&q=' + encodeURIComponent(q) : '');
-    window.location.href = url;
+    const query = $('q').value.trim();
+    window.location.href = 'https://www.google.com/search?udm=50' + (query ? '&q=' + encodeURIComponent(query) : '');
   });
 
   /* ---------- Menu ---------- */
@@ -497,7 +501,11 @@
   $('cancel').addEventListener('click', closeDialog);
   overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) closeDialog(); });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeDialog(); closeMenu(); setEditing(false); }
+    if (e.key !== 'Escape') return;
+    // Close only the top-most thing: popup first, then menu, then edit mode.
+    if (overlay.classList.contains('open')) closeDialog();
+    else if (menu.classList.contains('open')) closeMenu();
+    else setEditing(false);
   });
   $('dialog').addEventListener('submit', (e) => {
     e.preventDefault();
